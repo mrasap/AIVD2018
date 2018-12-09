@@ -1,60 +1,5 @@
-alphabet = ["a", "b", "c", "d", "e", "f", "g", "h",
-            "i", "j", "k", "l", "m", "n", "o", "p", "q",
-            "r", "s", "t", "u", "v", "w", "x", "y", "z"]
-
-rows = [
-    [22, 216],
-    [67, 67200],
-    [59, 24840],
-    [56, 21450],
-    [77, 122892],
-    [72, 95760],
-    [30, 3150],
-    [67, 61560]
-]
-
-path = [
-    [0, 0],
-    [1, 0],
-    [2, 0],
-    [2, 1],
-    [2, 2],
-    [1, 2],
-    [1, 1],
-    [0, 1],
-    [0, 2],
-    [0, 3],
-    [1, 3],
-    [1, 4],
-    [0, 4],
-    [0, 5],
-    [1, 5],
-    [2, 5],
-    [2, 6],
-    [1, 6],
-    [0, 6],
-    [0, 7],
-    [1, 7],
-    [2, 7],
-    [3, 7],
-    [4, 7],
-    [4, 6],
-    [3, 6],
-    [3, 5],
-    [3, 4],
-    [2, 4],
-    [2, 3],
-    [3, 3],
-    [3, 2],
-    [3, 1],
-    [3, 0],
-    [4, 0],
-    [4, 1],
-    [4, 2],
-    [4, 3],
-    [4, 4],
-    [4, 5]
-]
+from src.config import *
+import csv
 
 
 def modulo(product: int) -> [int]:
@@ -119,7 +64,7 @@ def productOfRow(letters: [int]) -> int:
     return s
 
 
-def bruteForceRows(matrix: [[int]]) -> [[int]]:
+def bruteForceRows(matrix: [[str]]) -> [[str]]:
     for a in range(len(matrix[0])):
         for b in range(len(matrix[1])):
             for c in range(len(matrix[2])):
@@ -138,54 +83,21 @@ def bruteForceRows(matrix: [[int]]) -> [[int]]:
                                            matrix[7][h]]
 
 
-def matrixToString(matrix: [[int]], path: [[int]]) -> str:
+def intMatrixToString(matrix: [[int]], path: [[int]]) -> str:
     ret: str = ""
-
     for [x, y] in path:
         ret += alphabet[matrix[y][x] - 1]
-
     return ret
 
 
-if __name__ == '__main__':
-    # PARAMS
-    # If you want to have all possible permutations of a row, or not
-    WITH_DUPLICATES = False
-
-    # Simply checking whether the path is correct
-    xs = [0 for _ in range(5)]
-    ys = [0 for _ in range(8)]
+def strMatrixToString(matrix: [[str]], path: [[int]]) -> str:
+    ret: str = ""
     for [x, y] in path:
-        xs[x] += 1
-        ys[y] += 1
-    print(xs)
-    print(ys)
+        ret += matrix[y][x]
+    return ret
 
-    # First, I bruteforce all the possible rows of letters, and store them in a matrix.
-    # This matrix consists of a list of 8 rows, and each row consists of a list of all possible
-    # combinations of letters.
-    combinationOfLettersPerRow = []
-    i = 0
-    for row in rows:
-        print("\nNew row:", row)
-        r = []
-        letters = modulo(row[1])
-        for combination in bruteForceLetters(letters=letters, withDuplicates=WITH_DUPLICATES):
-            if sumOfRow(combination) == row[0] and productOfRow(combination) == row[1]:
-                # print(rowToLetters(combination))
-                r.append(combination)
-                i += 1
-        combinationOfLettersPerRow.append(r)
 
-    print(i)
-
-    # Then, I bruteforce all the possible combinations between the rows
-    # This outputs a 2D matrix, where all numbers refer to the index of the alphabet
-    # I turn this 2D matrix into a string, based on the path
-    # A second path is possible that I didn't include yet
-    j = 0
-    for combination in bruteForceRows(combinationOfLettersPerRow):
-        j += 1
-        print(matrixToString(combination, path))
-
-    print(j)
+def writeResultsToCsv(matrix: [[str, int]]):
+    with open(PATH_RESULTS, 'a') as file:
+        writer = csv.writer(file)
+        writer.writerows(matrix)
