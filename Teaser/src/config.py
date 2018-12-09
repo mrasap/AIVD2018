@@ -1,11 +1,21 @@
-WITH_DUPLICATES = True
+WITH_DUPLICATES = False
+
 PATH_RESULTS = 'resources/results.csv'
 
-alphabet = ["a", "b", "c", "d", "e", "f", "g", "h",
+POP_SIZE = 32
+GENERATIONS = 100
+ALWAYS_INCLUDE_BEST = True
+INCLUDE_BEST_N = 10
+ALWAYS_CROSSOVER = False
+CROSSOVER_RATE = 0
+ALWAYS_MUTATE = False
+MUTATE_RATE_RANGE = (0.8, 0.01)
+
+ALPHABET = ["a", "b", "c", "d", "e", "f", "g", "h",
             "i", "j", "k", "l", "m", "n", "o", "p", "q",
             "r", "s", "t", "u", "v", "w", "x", "y", "z"]
 
-rows = [
+ROWS = [
     [22, 216],
     [67, 67200],
     [59, 24840],
@@ -16,7 +26,7 @@ rows = [
     [67, 61560]
 ]
 
-path = [
+PATH = [
     [0, 0],
     [1, 0],
     [2, 0],

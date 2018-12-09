@@ -13,7 +13,7 @@ def modulo(product: int) -> [int]:
 def rowToLetters(letters: [int]) -> [str]:
     let = []
     for i in letters:
-        let.append(alphabet[i - 1])
+        let.append(ALPHABET[i - 1])
     return let
 
 
@@ -86,7 +86,7 @@ def bruteForceRows(matrix: [[str]]) -> [[str]]:
 def intMatrixToString(matrix: [[int]], path: [[int]]) -> str:
     ret: str = ""
     for [x, y] in path:
-        ret += alphabet[matrix[y][x] - 1]
+        ret += ALPHABET[matrix[y][x] - 1]
     return ret
 
 

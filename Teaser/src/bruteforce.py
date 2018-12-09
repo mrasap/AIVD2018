@@ -1,4 +1,4 @@
-from src.util import *
+from src.util.util import *
 from src.spellchecker.spellchecker import Spellchecker
 from src.spellchecker.weeder import Weeder
 
@@ -9,7 +9,7 @@ if __name__ == '__main__':
     # This matrix consists of a list of 8 rows, and each row consists of a list of all possible
     # combinations of letters.
     combinationOfLettersPerRow = []
-    for row in rows:
+    for row in ROWS:
         print("\nNew row:", row)
         r = []
         letters = modulo(row[1])
@@ -28,8 +28,8 @@ if __name__ == '__main__':
         for i, combination in enumerate(bruteForceRows(combinationOfLettersPerRow)):
             if i % 250 == 0:
                 print('currently at =', i)
-            line = strMatrixToString(combination, path)
-            result = weeder.weed_out(line)
+            line = strMatrixToString(combination, PATH)
+            result = weeder.compute(line)
             if result > 35:
                 print(line, result)
                 resultMatrix.append([line, result])

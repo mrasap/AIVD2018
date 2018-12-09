@@ -6,7 +6,7 @@ class Weeder:
     def __init__(s, checker: Spellchecker):
         s.checker = checker
 
-    def weed_out(s, line: str) -> int:
+    def compute(s, line: str) -> int:
         weed = Weed(line)
         invalid_indices = set()
         # print('\nweeding out line =', weed.word)
@@ -32,4 +32,4 @@ class Weeder:
 if __name__ == '__main__':
     sc = Spellchecker()
     weeder = Weeder(sc)
-    print(weeder.weed_out('aacnlelaaaenaanrencsraticesusmorthitwvvt'))
+    print(weeder.compute('aacnlelaaaenaanrencsraticesusmorthitwvvt'))
