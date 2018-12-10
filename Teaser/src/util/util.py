@@ -97,7 +97,14 @@ def strMatrixToString(matrix: [[str]], path: [[int]]) -> str:
     return ret
 
 
-def writeResultsToCsv(matrix: [[str, int]]):
+def writeMatrixToCsv(matrix: [[str, int]]):
     with open(PATH_RESULTS, 'a') as file:
         writer = csv.writer(file)
         writer.writerows(matrix)
+
+
+def writeSetToCsv(set: set):
+    with open('../' + PATH_RESULTS, 'a') as file:
+        writer = csv.writer(file)
+        for word in set:
+            writer.writerow([word])

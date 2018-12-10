@@ -3,13 +3,14 @@ WITH_DUPLICATES = False
 PATH_RESULTS = 'resources/results.csv'
 
 POP_SIZE = 32
-GENERATIONS = 100
+GENERATIONS = 80000
 ALWAYS_INCLUDE_BEST = True
-INCLUDE_BEST_N = 10
+INCLUDE_BEST_RANGE = (1, POP_SIZE)
+SAVE_WHEN_FITNESS_OVER = 100
 ALWAYS_CROSSOVER = False
-CROSSOVER_RATE = 0
+CROSSOVER_RATE = 0.8
 ALWAYS_MUTATE = False
-MUTATE_RATE_RANGE = (0.8, 0.01)
+MUTATE_RATE_RANGE = (0.2, 0.01)
 
 ALPHABET = ["a", "b", "c", "d", "e", "f", "g", "h",
             "i", "j", "k", "l", "m", "n", "o", "p", "q",

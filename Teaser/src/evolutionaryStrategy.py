@@ -1,3 +1,5 @@
+import math
+
 from src.config import *
 from src.bruteforce import *
 from src.spellchecker.spellchecker import Spellchecker
@@ -16,7 +18,9 @@ class EvolutionaryStrategy:
             blueprint: [[str]],
             fitness_func=Weeder(Spellchecker()),
             path=PATH,
-            pop_size=POP_SIZE):
+            pop_size=POP_SIZE,
+            save_when_fitness_over=SAVE_WHEN_FITNESS_OVER,
+    ):
         """
         :param blueprint: the matrix with all possibilities
         :param fitness_func: the fitness function that is applied, should have a compute(list) func.
@@ -44,6 +48,10 @@ class EvolutionaryStrategy:
         self.average_fitness_over_generations = []
         self.best_fitness_over_generations = []
         self.mutate_rate_over_generations = []
+
+        # Used to save all best results
+        self.save_when_fitness_over = save_when_fitness_over
+        self.best_chromosomes_strings_set = set()
 
     def generate_random_population(s, pop_size, blueprint):
         """
@@ -74,7 +82,7 @@ class EvolutionaryStrategy:
 
         result = s.fitness_func.compute(line)
         if result > 30:
-            result += (result - 28) ** 1.7
+            result += math.floor((result - 28) ** 1.7)
         return result
 
     def fitness_computation_on_population(s):
@@ -95,7 +103,7 @@ class EvolutionaryStrategy:
         upper_bound = 0
         sum_fitness = sum(s.pop_fitness)
         for fitness in s.pop_fitness:
-            upper_bound += fitness / sum_fitness
+            upper_bound += fitness / (sum_fitness if sum_fitness else 0.01)
             s.roulette_wheel.append(upper_bound)
 
     def select_chromosome_from_roulette_wheel(s):
@@ -121,7 +129,7 @@ class EvolutionaryStrategy:
         for _ in range(s.pop_size):
             s.pop_selected.append(s.select_chromosome_from_roulette_wheel())
 
-    def crossover(s, mother, father) -> list:
+    def crossover(s, mother: [[str]], father: [[str]]) -> [[str]]:
         """
         Step 6.
         :param mother:
@@ -137,14 +145,9 @@ class EvolutionaryStrategy:
             child_chromosome[i] = mother[i]
 
         # fill the chromosome with the genes from the father
-        j = 0  # index of father
         for i, gene in enumerate(child_chromosome):
-            while not gene:
-                if not child_chromosome.__contains__(father[j]):
-                    child_chromosome[i] = father[j]
-                    gene = father[j]
-                else:
-                    j += 1
+            if not gene:
+                child_chromosome[i] = father[i]
 
         return child_chromosome
 
@@ -177,12 +180,11 @@ class EvolutionaryStrategy:
                 chromosome[i] = s.shuffle_knuth_yates(gene)
         else:
             for i, gene in enumerate(chromosome):
-                chromosome[i] = s.shuffle_with_convergence(gene)
+                if random.random() <= s.mutate_rate_current:
+                    chromosome[i] = s.shuffle_with_convergence(gene)
         return chromosome
 
-    # Knuth-Yates shuffle, reordering a array randomly
-    # @param chromosome array to shuffle.
-    def shuffle_knuth_yates(s, gene) -> list:
+    def shuffle_knuth_yates(s, gene) -> [str]:
         """
         Step 6a: Knuth-Yates shuffle, reordering a array randomly. Every gene gets mutated every
         generation.
@@ -191,14 +193,15 @@ class EvolutionaryStrategy:
         :return: mutated gene
         """
         n = len(gene)
+        gene_new = gene.copy()
         for i in range(n):
             r = i + int(random.uniform(0, 1) * (n - i))
-            swap = gene[r]
-            gene[r] = gene[i]
-            gene[i] = swap
-        return gene
+            swap = gene_new[r]
+            gene_new[r] = gene_new[i]
+            gene_new[i] = swap
+        return gene_new
 
-    def shuffle_with_convergence(s, gene) -> list:
+    def shuffle_with_convergence(s, gene) -> [str]:
         """
         Step 6b: Uses Knuth-Yates shuffle, but the chance that a gene is mutated is dependent on
         a probability.
@@ -208,13 +211,14 @@ class EvolutionaryStrategy:
         :return: mutated gene
         """
         n = len(gene)
+        gene_new = gene.copy()
         for i in range(n):
             if random.random() <= s.mutate_rate_current:
                 r = i + int(random.uniform(0, 1) * (n - i))
-                swap = gene[r]
-                gene[r] = gene[i]
-                gene[i] = swap
-        return gene
+                swap = gene_new[r]
+                gene_new[r] = gene_new[i]
+                gene_new[i] = swap
+        return gene_new
 
     def generate_next_generation(s):
         """
@@ -236,27 +240,34 @@ class EvolutionaryStrategy:
 
         # apply elitism
         if s.always_include_best:
-            for chrom, _ in s.best_chromosomes_with_fitness:
+            for chrom, _ in s.best_chromosomes_with_fitness[
+                            :random.randrange(*s.include_best_range)]:
                 if not s.pop.__contains__(chrom):
                     s.pop.append(chrom)
 
-    def track_best_chromosome(s):
+    def track_best_chromosomes(s):
         """
         Keeps track of the best chromosomes this far.
         """
+        # TODO: this is n^2
         new_best = []
         for chromosome, fitness in zip(s.pop, s.pop_fitness):
             if not new_best.__contains__([chromosome, fitness]):
                 new_best.append([chromosome, fitness])
 
         s.best_chromosomes_with_fitness = sorted(new_best, key=itemgetter(1), reverse=True)[
-                                          :s.include_best_n]
+                                          :s.include_best_range[1]]
 
         if s.best_chromosomes_with_fitness[0][1] > s.best_chromosome_fitness:
             s.best_chromosome, s.best_chromosome_fitness = s.best_chromosomes_with_fitness[0]
 
             print('new best fitness', s.best_chromosome_fitness, ', chromosome',
                 strMatrixToString(s.best_chromosome, s.path))
+
+        for chromosome, fitness in s.best_chromosomes_with_fitness:
+            if fitness < s.save_when_fitness_over:
+                break
+            s.best_chromosomes_strings_set.add(strMatrixToString(chromosome, s.path))
 
     def track_performance_over_generations(s):
         """
@@ -280,7 +291,7 @@ class EvolutionaryStrategy:
         s.fitness_computation_on_population()
         s.create_roulette_wheel()
         s.select_chromosomes_from_roulette_wheel()
-        s.track_best_chromosome()
+        s.track_best_chromosomes()
         s.track_performance_over_generations()
         s.generate_next_generation()
         s.generation += 1
@@ -288,7 +299,7 @@ class EvolutionaryStrategy:
     def train(s,
             generations=GENERATIONS,
             always_include_best=ALWAYS_INCLUDE_BEST,
-            include_best_n=INCLUDE_BEST_N,
+            include_best_range=INCLUDE_BEST_RANGE,
             always_crossover=ALWAYS_CROSSOVER,
             crossover_rate=CROSSOVER_RATE,
             always_mutate=ALWAYS_MUTATE,
@@ -302,7 +313,8 @@ class EvolutionaryStrategy:
         always in the population.
                 Note: applies to the population, it does not ensure that it is always selected.
                 Note: this could cause the size of the population to increase by one.
-        :param include_best_n: Int, amount of best samples included.
+        :param include_best_range: Int, amount of best samples included. Rate is variable with
+        lower and upper bound.
                 Note: Could range between 0 (no elitism) and population size (only elitism).
         :param always_crossover: Boolean, if true, will always crossover a gene.
         :param crossover_rate: Float between 0 and 1, indicates the chance that a chromosome will
@@ -329,14 +341,14 @@ class EvolutionaryStrategy:
         s.crossover_rate = crossover_rate
 
         # These variables are used to keep track of the best chromosome
-        if (include_best_n > s.pop_size) or (include_best_n < 1):
+        if include_best_range[1] > s.pop_size:
             raise ValueError("Amount of best chromosomes included should be between 1 and pop size")
         s.best_chromosome = []
         s.best_chromosome_fitness = 0
         s.best_chromosomes_with_fitness = []  # list of lists, each list contains the chromosome
         # and the fitness.
         s.always_include_best = always_include_best
-        s.include_best_n = include_best_n
+        s.include_best_range = include_best_range
 
         for _ in range(generations):
             s.train_one_generation()
@@ -398,9 +410,16 @@ if __name__ == "__main__":
     ga = EvolutionaryStrategy(blueprint=combinationOfLettersPerRow)
 
     # run optimization
-    ga.train()
-    ga.plot_performance_over_generations()
+    try:
+        ga.train()
+    finally:
+        ga.plot_performance_over_generations()
 
-    # get the optimal solution and write to file
-    print('best solution with fitness', ga.best_chromosome_fitness, ', chromosome',
-        strMatrixToString(ga.best_chromosome, ga.path))
+        print('Current best solutions of the final generation')
+        for chromosome, fitness in ga.best_chromosomes_with_fitness:
+            # get the optimal solution and write to file
+            print('fitness', fitness, ', chromosome',
+                strMatrixToString(chromosome, ga.path))
+
+        print('Writing all solutions that are over', ga.save_when_fitness_over)
+        writeSetToCsv(ga.best_chromosomes_strings_set)
