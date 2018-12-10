@@ -1,3 +1,5 @@
+import operator
+
 from src.config import *
 import csv
 
@@ -98,13 +100,28 @@ def strMatrixToString(matrix: [[str]], path: [[int]]) -> str:
 
 
 def writeMatrixToCsv(matrix: [[str, int]]):
-    with open(PATH_RESULTS, 'a') as file:
+    with open('../' + PATH_RESULTS, 'a') as file:
         writer = csv.writer(file)
         writer.writerows(matrix)
 
 
-def writeSetToCsv(set: set):
+def writeSetToCsv(s: set):
     with open('../' + PATH_RESULTS, 'a') as file:
         writer = csv.writer(file)
-        for word in set:
+        for word in s:
             writer.writerow([word])
+
+
+def writeDictToCsv(d: dict):
+    with open('../' + PATH_RESULTS, 'w') as file:
+        writer = csv.writer(file)
+        writer.writerows(sorted(d.items(), key=operator.itemgetter(1), reverse=True))
+
+
+def readDictFromCsv() -> dict:
+    d = {}
+    with open('../' + PATH_RESULTS, 'r') as file:
+        reader = csv.reader(file)
+        for [k, v] in reader:
+            d[k] = int(v)
+    return d

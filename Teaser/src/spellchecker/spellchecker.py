@@ -12,3 +12,8 @@ class Spellchecker:
 
     def contains(s, word: str) -> bool:
         return word in s.nl
+
+
+if __name__ == '__main__':
+    sc = Spellchecker()
+    print(len(sc.nl))

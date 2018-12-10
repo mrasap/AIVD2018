@@ -17,7 +17,7 @@ class EvolutionaryStrategy:
     def __init__(self,
             blueprint: [[str]],
             fitness_func=Weeder(Spellchecker()),
-            path=PATH,
+            path=PATHS[0],
             pop_size=POP_SIZE,
             save_when_fitness_over=SAVE_WHEN_FITNESS_OVER,
     ):
@@ -51,7 +51,7 @@ class EvolutionaryStrategy:
 
         # Used to save all best results
         self.save_when_fitness_over = save_when_fitness_over
-        self.best_chromosomes_strings_set = set()
+        self.best_chromosomes_hashmap = readDictFromCsv()
 
     def generate_random_population(s, pop_size, blueprint):
         """
@@ -231,9 +231,12 @@ class EvolutionaryStrategy:
         """
         s.pop = []
 
-        for chromosome in s.pop_selected:
-            s.pop.append(chromosome)  # parent
-            s.pop.append(s.generate_offspring(chromosome))  # offspring
+        if random.random() <= s.mutate_rate_current:
+            s.pop = s.generate_random_population(s.pop_size, s.blueprint)
+        else:
+            for chromosome in s.pop_selected:
+                s.pop.append(chromosome)  # parent
+                s.pop.append(s.generate_offspring(chromosome))  # offspring
 
         # apply variable mutation rate
         if not s.always_mutate:
@@ -243,8 +246,7 @@ class EvolutionaryStrategy:
 
         # apply elitism
         if s.always_include_best:
-            for chrom, _ in s.best_chromosomes_with_fitness[
-                            :random.randrange(*s.include_best_range)]:
+            for chrom, _ in s.best_chromosomes[:random.randrange(*s.include_best_range)]:
                 if not s.pop.__contains__(chrom):
                     s.pop.append(chrom)
 
@@ -258,19 +260,20 @@ class EvolutionaryStrategy:
             if not new_best.__contains__([chromosome, fitness]):
                 new_best.append([chromosome, fitness])
 
-        s.best_chromosomes_with_fitness = sorted(new_best, key=itemgetter(1), reverse=True)[
-                                          :s.include_best_range[1]]
+        s.best_chromosomes = sorted(new_best, key=itemgetter(1), reverse=True)[
+                             :s.include_best_range[1]]
 
-        if s.best_chromosomes_with_fitness[0][1] > s.best_chromosome_fitness:
-            s.best_chromosome, s.best_chromosome_fitness = s.best_chromosomes_with_fitness[0]
+        if s.best_chromosomes[0][1] > s.best_chromosome[1]:
+            s.best_chromosome = s.best_chromosomes[0]
 
-            print('new best fitness', s.best_chromosome_fitness, ', chromosome',
-                strMatrixToString(s.best_chromosome, s.path))
+            if s.best_chromosome[1] > FITNESS_FUNC_LIMITS[0]:
+                print('new best fitness', s.best_chromosome[1], ', chromosome',
+                    strMatrixToString(s.best_chromosome[0], s.path))
 
-        for chromosome, fitness in s.best_chromosomes_with_fitness:
+        for chromosome, fitness in s.best_chromosomes:
             if fitness < s.save_when_fitness_over:
                 break
-            s.best_chromosomes_strings_set.add(strMatrixToString(chromosome, s.path))
+            s.best_chromosomes_hashmap[strMatrixToString(chromosome, s.path)] = fitness
 
     def track_performance_over_generations(s):
         """
@@ -282,7 +285,7 @@ class EvolutionaryStrategy:
             s.average_fitness_over_generations.append(0)
         else:
             s.average_fitness_over_generations.append(sum(s.pop_fitness) / len(s.pop_fitness))
-        s.best_fitness_over_generations.append(s.best_chromosome_fitness)
+        s.best_fitness_over_generations.append(s.best_chromosome[1])
 
         if not s.always_mutate:
             s.mutate_rate_over_generations.append(s.mutate_rate_current)
@@ -303,6 +306,7 @@ class EvolutionaryStrategy:
             generations=GENERATIONS,
             always_include_best=ALWAYS_INCLUDE_BEST,
             include_best_range=INCLUDE_BEST_RANGE,
+            fresh_gene_rate=FRESH_GENES_RATE,
             always_crossover=ALWAYS_CROSSOVER,
             crossover_rate=CROSSOVER_RATE,
             always_mutate=ALWAYS_MUTATE,
@@ -335,6 +339,7 @@ class EvolutionaryStrategy:
         s.mutate_rate_range = mutate_rate_range
         s.mutate_rate_step_size = (mutate_rate_range[1] - mutate_rate_range[0]) / generations
         s.mutate_rate_current = s.mutate_rate_range[0]
+        s.fresh_gene_rate = fresh_gene_rate
 
         # These variables are used to variate the chance of crossover
         if (crossover_rate > 1) or (crossover_rate < 0):
@@ -345,10 +350,8 @@ class EvolutionaryStrategy:
         # These variables are used to keep track of the best chromosome
         if include_best_range[1] > s.pop_size:
             raise ValueError("Amount of best chromosomes included should be between 1 and pop size")
-        s.best_chromosome = []
-        s.best_chromosome_fitness = 0
-        s.best_chromosomes_with_fitness = []  # list of lists, each list contains the chromosome
-        # and the fitness.
+        s.best_chromosome = ['placeholder', 0]  # chromsome, fitness
+        s.best_chromosomes = [[]]  # chromosome, fitness
         s.always_include_best = always_include_best
         s.include_best_range = include_best_range
 
@@ -398,9 +401,10 @@ if __name__ == "__main__":
     # First, I bruteforce all the possible rows of letters, and store them in a matrix.
     # This matrix consists of a list of 8 rows, and each row consists of a list of all possible
     # combinations of letters.
+    print('Bruteforcing the blueprint of all possible combination of letters per row')
     combinationOfLettersPerRow = []
     for row in ROWS:
-        print("\nNew row:", row)
+        # print("\nNew row:", row)
         r = []
         letters = modulo(row[1])
         for combination in bruteForceLetters(letters=letters, withDuplicates=WITH_DUPLICATES):
@@ -409,19 +413,17 @@ if __name__ == "__main__":
                 r.append(rowToLetters(combination))
         combinationOfLettersPerRow.append(r)
 
-    ga = EvolutionaryStrategy(blueprint=combinationOfLettersPerRow)
+    # Then, I explore the combinatorial space with an evolutionary strategy.
+    while True:
+        for i, path in enumerate(PATHS):
+            print('Initiating path', i)
+            ga = EvolutionaryStrategy(blueprint=combinationOfLettersPerRow, path=path)
 
-    # run optimization
-    try:
-        ga.train()
-    finally:
-        ga.plot_performance_over_generations()
+            try:
+                ga.train()
+            finally:
+                ga.plot_performance_over_generations()
 
-        print('Current best solutions of the final generation')
-        for chromosome, fitness in ga.best_chromosomes_with_fitness:
-            # get the optimal solution and write to file
-            print('fitness', fitness, ', chromosome',
-                strMatrixToString(chromosome, ga.path))
-
-        print('Writing all solutions that are over', ga.save_when_fitness_over)
-        writeSetToCsv(ga.best_chromosomes_strings_set)
+                print('Writing all', len(ga.best_chromosomes_hashmap), 'solutions that are over',
+                    ga.save_when_fitness_over)
+                writeDictToCsv(ga.best_chromosomes_hashmap)
