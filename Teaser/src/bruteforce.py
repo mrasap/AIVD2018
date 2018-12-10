@@ -29,7 +29,7 @@ if __name__ == '__main__':
             if i % 250 == 0:
                 print('currently at =', i)
             line = strMatrixToString(combination, PATH)
-            result = weeder.compute(line)
+            result = weeder.compute_valid(line)
             if result > 35:
                 print(line, result)
                 resultMatrix.append([line, result])

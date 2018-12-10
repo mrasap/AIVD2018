@@ -77,12 +77,15 @@ class EvolutionaryStrategy:
         :param chromosome: the tested chromosome
         :return: the fitness of the chromosome
         """
-        # TODO: optimize to emphasize 30++ region, up to 40
         line = strMatrixToString(chromosome, s.path)
 
-        result = s.fitness_func.compute(line)
-        if result > 30:
+        result = s.fitness_func.compute_valid(line)
+        if result > FITNESS_FUNC_LIMITS[0]:
             result += math.floor((result - 28) ** 1.7)
+
+        if result > FITNESS_FUNC_LIMITS[1]:
+            result += s.fitness_func.compute_sensible(line)
+
         return result
 
     def fitness_computation_on_population(s):
@@ -303,8 +306,7 @@ class EvolutionaryStrategy:
             always_crossover=ALWAYS_CROSSOVER,
             crossover_rate=CROSSOVER_RATE,
             always_mutate=ALWAYS_MUTATE,
-            mutate_rate_range=MUTATE_RATE_RANGE
-    ):
+            mutate_rate_range=MUTATE_RATE_RANGE):
         """
         Train the GA up until the maximum of generations.
 
