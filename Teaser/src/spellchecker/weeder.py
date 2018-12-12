@@ -28,6 +28,11 @@ class Weeder:
         # print('final invalid indices =', invalid_indices)
         return len(weed.word) - len(invalid_indices)
 
+    def compute_valid_word(s, weed: Weed, i: int) -> [[int, int], str]:
+        for [bounds, word] in weed.split_on_index_generator(i):
+            if s.checker.contains(word):
+                return [bounds, word]
+
     def compute_sensible(s, line: str) -> int:
         weed = Weed(line)
         best = 0
@@ -60,4 +65,12 @@ if __name__ == '__main__':
     sc = Spellchecker()
     weeder = Weeder(sc)
     # print(weeder.compute_sensible('boterkaas'))
-    print(weeder.compute_sensible('aacnlelaaaenaanrencsraticesusmorthitwvvt'))
+    # print(weeder.compute_sensible('aacnlelaaaenaanrencsraticesusmorthitwvvt'))
+    print(weeder.compute_valid_word(Weed('boterkaaseieren'), 12))
+
+    # TODO: accept matrix and path
+    # TODO: move all strMatrixToString to Weeder
+
+    # TODO: select random x,y, find longest word and return matrix with only that word
+    # TODO: evolutionary strategy should use that matrix to fill it up with the matrix from father
+

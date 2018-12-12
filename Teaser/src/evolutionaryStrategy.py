@@ -61,12 +61,15 @@ class EvolutionaryStrategy:
         """
         pop = []
         for _ in range(pop_size * 2):
-            chromosome = []
-            for row in blueprint:
-                row_blueprint = random.choice(row)
-                chromosome.append(s.shuffle_knuth_yates(row_blueprint))
-            pop.append(chromosome)
+            pop.append(s.generate_random_chromosome(blueprint))
         return pop
+
+    def generate_random_chromosome(s, blueprint):
+        chromosome = []
+        for row in blueprint:
+            row_blueprint = random.choice(row)
+            chromosome.append(s.shuffle_knuth_yates(row_blueprint))
+        return chromosome
 
     def fitness_function(s, chromosome):
         """
@@ -84,7 +87,7 @@ class EvolutionaryStrategy:
             result += math.floor((result - 28) ** 1.7)
 
         if result > FITNESS_FUNC_LIMITS[1]:
-            result += s.fitness_func.compute_sensible(line)
+            result += math.floor(s.fitness_func.compute_sensible(line) ** 1.25)
 
         return result
 
@@ -231,12 +234,15 @@ class EvolutionaryStrategy:
         """
         s.pop = []
 
-        if random.random() <= s.mutate_rate_current:
-            s.pop = s.generate_random_population(s.pop_size, s.blueprint)
-        else:
-            for chromosome in s.pop_selected:
-                s.pop.append(chromosome)  # parent
-                s.pop.append(s.generate_offspring(chromosome))  # offspring
+        # apply fresh chromosomes
+        for _ in range(s.fresh_chromosomes):
+            if random.random() <= s.fresh_chromosomes_rate:
+                s.pop_selected.append(s.generate_random_chromosome(s.blueprint))
+
+        # apply crossover
+        for chromosome in s.pop_selected:
+            s.pop.append(chromosome)  # parent
+            s.pop.append(s.generate_offspring(chromosome))  # offspring
 
         # apply variable mutation rate
         if not s.always_mutate:
@@ -306,7 +312,8 @@ class EvolutionaryStrategy:
             generations=GENERATIONS,
             always_include_best=ALWAYS_INCLUDE_BEST,
             include_best_range=INCLUDE_BEST_RANGE,
-            fresh_gene_rate=FRESH_GENES_RATE,
+            fresh_genes=FRESH_CHROMOSOMES_MAX,
+            fresh_genes_rate=FRESH_CHROMOSOMES_RATE,
             always_crossover=ALWAYS_CROSSOVER,
             crossover_rate=CROSSOVER_RATE,
             always_mutate=ALWAYS_MUTATE,
@@ -339,7 +346,8 @@ class EvolutionaryStrategy:
         s.mutate_rate_range = mutate_rate_range
         s.mutate_rate_step_size = (mutate_rate_range[1] - mutate_rate_range[0]) / generations
         s.mutate_rate_current = s.mutate_rate_range[0]
-        s.fresh_gene_rate = fresh_gene_rate
+        s.fresh_chromosomes = fresh_genes
+        s.fresh_chromosomes_rate = fresh_genes_rate
 
         # These variables are used to variate the chance of crossover
         if (crossover_rate > 1) or (crossover_rate < 0):
